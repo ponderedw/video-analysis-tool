@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vimeo Video with Transcript</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 a {
+            color: inherit;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        h1 a:hover {
+            color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        h1 a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 2px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        h1 a:hover::after {
+            width: 100%;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .video-container {
+            position: relative;
+            width: 50%;
+            height: 0;
+            padding-bottom: 28.125%; /* 16:9 aspect ratio for 50% width */
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            transform: perspective(1000px) rotateX(2deg);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .video-container:hover {
+            transform: perspective(1000px) rotateX(0deg);
+        }
+
+        .video-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .transcript-container {
+            width: 50%;
+            flex-shrink: 0;
+        }
+
+        .transcript-section {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: inset 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .transcript-title {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .transcript-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        .transcript-item {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.8);
+            border-left: 4px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .transcript-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .transcript-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-left-color: #667eea;
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .transcript-item:hover::before {
+            opacity: 1;
+        }
+
+        .transcript-item:active {
+            transform: translateY(0);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .transcript-item.highlighted {
+            background: rgba(102, 126, 234, 0.2);
+            border-left-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .timestamp {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            display: block;
+            position: relative;
+            z-index: 1;
+        }
+
+        .transcript-text {
+            color: #2c3e50;
+            line-height: 1.6;
+            font-size: 1em;
+            position: relative;
+            z-index: 1;
+        }
+
+        .description-text {
+            color: #6c757d;
+            font-style: italic;
+            background: rgba(108, 117, 125, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #6c757d;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        .loading-message {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            padding: 40px;
+            font-size: 1.1em;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+
+            .main-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .video-container {
+                width: 100%;
+                padding-bottom: 56.25%; /* Full width 16:9 aspect ratio */
+            }
+            
+            .transcript-container {
+                width: 100%;
+            }
+            
+            .transcript-section {
+                padding: 20px;
+                max-height: 400px;
+            }
+            
+            .transcript-item {
+                padding: 12px 15px;
+            }
+        }
+
+        /* Custom scrollbar */
+        .transcript-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .transcript-section::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+        }
+
+        .transcript-section::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 4px;
+        }
+
+        /* Smooth scrolling animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .transcript-item {
+            animation: fadeInUp 0.5s ease forwards;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><a href="https://vimeo.com/444582920" target="_blank">Video with Interactive Transcript</a></h1>
+        
+        <div class="main-content">
+            <div class="video-container">
+                <iframe id="vimeo-player" 
+                        src="https://player.vimeo.com/video/444582920?api=1&player_id=vimeo-player" 
+                        width="100%" 
+                        height="100%" 
+                        frameborder="0" 
+                        allow="autoplay; fullscreen; picture-in-picture" 
+                        allowfullscreen>
+                </iframe>
+            </div>
+
+            <div class="transcript-container">
+                <div class="transcript-section">
+                    <h2 class="transcript-title">Interactive Transcript</h2>
+                    <div id="transcript-container">
+                        <div class="loading-message">
+                            Transcript will appear here once you add it to the code...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://player.vimeo.com/api/player.js"></script>
+    <script>
+        // Vimeo Player integration
+        let player;
+        let playerReady = false;
+        
+        // Initialize Vimeo player
+        function initializeVimeoPlayer() {
+            const iframe = document.getElementById('vimeo-player');
+            player = new Vimeo.Player(iframe);
+            
+            player.ready().then(function() {
+                console.log('Vimeo player is ready');
+                playerReady = true;
+            }).catch(function(error) {
+                console.error('Error initializing Vimeo player:', error);
+            });
+        }
+
+        // Function to parse timestamp and convert to seconds
+        function parseTimestamp(timestamp) {
+            const parts = timestamp.split(':');
+            let seconds = 0;
+            
+            if (parts.length === 3) {
+                // HH:MM:SS,mmm format
+                const [hours, minutes, secondsAndMs] = parts;
+                const [secs, ms] = secondsAndMs.split(',');
+                seconds = parseInt(hours) * 3600 + parseInt(minutes) * 60 + parseInt(secs);
+            } else if (parts.length === 2) {
+                // MM:SS,mmm format
+                const [minutes, secondsAndMs] = parts;
+                const [secs, ms] = secondsAndMs.split(',');
+                seconds = parseInt(minutes) * 60 + parseInt(secs);
+            }
+            
+            return seconds;
+        }
+
+        // Function to jump to specific time in video
+        function jumpToTime(seconds) {
+            console.log('Attempting to jump to:', seconds, 'seconds');
+            
+            if (player && playerReady) {
+                player.setCurrentTime(seconds).then(function(seconds) {
+                    console.log('Successfully jumped to', seconds, 'seconds');
+                    // Optionally play the video
+                    player.play();
+                }).catch(function(error) {
+                    console.error('Error seeking to time:', error);
+                });
+            } else {
+                console.log('Player not ready');
+            }
+        }
+
+        // Function to render transcript
+        function renderTranscript(transcriptData) {
+            const container = document.getElementById('transcript-container');
+            container.innerHTML = '';
+
+            transcriptData.forEach((item, index) => {
+                const transcriptItem = document.createElement('div');
+                transcriptItem.className = 'transcript-item';
+                transcriptItem.style.animationDelay = `${index * 0.1}s`;
+                
+                const startTime = parseTimestamp(item.start);
+                
+                let contentHTML = `<span class="timestamp">${item.start} → ${item.end}</span>`;
+                
+                // Add description if it exists
+                if (item.description) {
+                    contentHTML += `<div class="description-text">${item.description}</div>`;
+                }
+                
+                // Add main text
+                contentHTML += `<div class="transcript-text">${item.text}</div>`;
+                
+                transcriptItem.innerHTML = contentHTML;
+                
+                transcriptItem.addEventListener('click', () => {
+                    jumpToTime(startTime);
+                });
+                
+                container.appendChild(transcriptItem);
+            });
+        }
+
+        // Enhanced function to parse transcript text format with descriptions
+        function parseTranscriptText(transcriptText) {
+            const lines = transcriptText.trim().split('\n');
+            const transcriptData = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Check if line contains timestamp (has --> in it)
+                if (line.includes('-->')) {
+                    const [start, end] = line.split('-->').map(t => t.trim());
+                    
+                    // Get the text from the next line(s) until we hit a number or empty line
+                    let allText = '';
+                    let j = i + 1;
+                    while (j < lines.length && lines[j].trim() !== '' && !(/^\d+$/.test(lines[j].trim()))) {
+                        allText += (allText ? ' ' : '') + lines[j].trim();
+                        j++;
+                    }
+                    
+                    if (allText) {
+                        // Check if the text starts with a description in angle brackets
+                        let description = '';
+                        let mainText = allText;
+                        
+                        // Look for content within < > brackets at the beginning
+                        const descriptionMatch = allText.match(/^<([^>]+)>\s*(.*)/);
+                        if (descriptionMatch) {
+                            description = descriptionMatch[1];
+                            mainText = descriptionMatch[2];
+                        }
+                        
+                        transcriptData.push({
+                            start: start,
+                            end: end,
+                            description: description,
+                            text: mainText
+                        });
+                    }
+                }
+            }
+            
+            return transcriptData;
+        }
+
+        // INSERT YOUR TRANSCRIPT TEXT HERE
+        const transcriptText = `
+        1
+00:00:00,753 --> 00:00:09,303
+<The speaker, a woman with braids wearing a black top, appears in a small window in the top right corner of the screen. The main screen shows a title slide "Most Productive Struggle" and a logo for "Uncommon Schools | Change History.">
+So the first thing that I do when I prepare for discourse in my classroom is I start by identifying the moment for the most productive struggle.
+2
+00:00:09,303 --> 00:00:23,893
+<The speaker maintains a professional and informative tone, looking directly at the camera.>
+This is a moment in my lesson where it's challenging enough that I'll get multitude of different opinions and expertise around the room, but it's still super aligned to my objectives that we're able to get to that super important key takeaway by the end of my lesson.
+3
+00:00:23,893 --> 00:00:34,313
+<The slide changes to a bulleted list titled "When I think about the opportunities for discourse in a math lesson, there's usually 3 key moments:". The first sub-bullet "When students are engaging in the Explore" appears.>
+When I think about the opportunities for discourse in a math lesson, there's usually three key moments. First, when students are engaging in an explore.
+4
+00:00:34,313 --> 00:00:41,843
+<The speaker gestures with her right hand as she explains the concept of students using prior knowledge.>
+So they're unpacking a task for the first time and just based on their prior knowledge, they're driving to a conclusion from that task.
+5
+00:00:41,843 --> 00:00:52,653
+<A second sub-bullet appears on the slide: "When students are driving towards the STAMP".>
+Secondly, when students are driving towards a stamp. So they just finished a mathematical task and they're trying to summarize their learning using strong math vocabulary.
+6
+00:00:52,653 --> 01:04,953
+<A third sub-bullet appears: "When there's a trending error during IP". The speaker continues to look at the camera.>
+Lastly, when there's a trending error during IP. So as students practice independently, I'm monitoring student work and I'm noticing that there's a trending error that I want to close through discourse.
+7
+01:04,953 --> 01:17,593
+<The slide changes to show two equations in a table, labeled "Equation 1" and "Equation 2", with questions below them. The speaker refers to this as the "Explore task".>
+When looking through this lesson, I think that the richest part is the Explore task when students come to the conclusion about what no solution and infinitely many solutions looks like and means.
+8
+01:17,593 --> 01:31,883
+<The slide changes to show a table of lesson objectives. The terms "no solution" and "infinitely many solutions" are highlighted in blue boxes. The speaker points to the screen with her right hand, although it's a virtual gesture.>
+I also looked at the scope and sequence and I remember that this idea of no solutions and infinitely many solutions comes up in their systems of equations unit. And so I really want to make sure that students talk about this conceptually now when we're in one equation,
+9
+01:31,883 --> 01:39,833
+<The speaker continues to gesture as she explains the importance of understanding the concept before adding more complexity.>
+before we add another layer and another equation and they have to start comparing other things.
+10
+01:39,833 --> 01:43,593
+<The slide changes to show two examples of student work on an "Exit Ticket".>
+I also took a look at the exit ticket.
+11
+01:43,593 --> 01:58,683
+<The speaker analyzes the student work shown on the slide, maintaining a thoughtful tone.>
+And looking at the exit ticket, I noticed students need to be able to solve equations and then recognize and interpret the different solutions. The explore task is the first time that students are engaging with this understanding.
+12
+01:58,683 --> 02:06,123
+<The speaker gestures with her right hand to emphasize the importance of the Explore task.>
+And so I know if they do it now and we can stamp through discourse, we can get to this big exit ticket at the end of the lesson.
+13
+02:06,123 --> 02:20,013
+<The slide changes back to a summary bullet point. The speaker summarizes her decision-making process.>
+And so based on the scope and sequence and the exit ticket, I think that the best task for students to discuss is the explore, when students come to the conclusion about what no solution and infinitely many solutions looks like and means.
+14
+02:20,013 --> 02:34,313
+<The slide changes to a practice question, with the word "without" italicized. The speaker adopts a slightly more animated tone.>
+But wait, I also think that there's a practice question in the independent practice that would be a really good place to discuss how students can identify infinitely many solutions without having to solve.
+15
+02:34,313 --> 02:41,203
+<The speaker explains the shortcut students can learn, gesturing with her hand.>
+So without having to simplify, how can I just compare coefficients and constants and draw a conclusion from that?
+16
+02:41,203 --> 02:49,343
+<The slide changes to another table of lesson objectives, this time highlighting "are parallel" and "comparing their slopes".>
+I noticed that this would connect really nicely to when they're talking about parallel lines, graphically and comparing their slopes and perpendicular lines.
+17
+02:49,343 --> 03:05,253
+<The slide changes to two bullet points. The words "primary focus" and "FIRST" are bolded on the slide, and the speaker emphasizes them in her speech.>
+Although I do know that this could be a great opportunity for discourse, my primary focus will be the explore task. The reason why is because this explore task is the first place that students will be grappling with equations that don't have one solution.
+18
+03:05,253 --> 03:16,923
+<The speaker's tone is decisive as she explains the pedagogical reasoning for her focus.>
+If we can stamp this conceptual understanding earlier on in the lesson, engage in lots of practice, students will then be successful on that exit ticket and know this concept deeply.
+19
+03:16,923 --> 03:25,323
+<The slide changes to a "Planning Template" showing the "Explore Task" has been added to the "Area of Productive Struggle in Lesson" section.>
+Now that I know what that area of my most productive struggle is, I'm going to go ahead and put that in my planning template.
+20
+03:25,323 --> 03:37,283
+<A new title slide appears: "Exemplar Student Response". The speaker looks at the camera.>
+And so now that I've identified what my most productive struggle is, it's time for me to start thinking about what is that big key takeaway that I want them to stamp at the end of this explore task.
+21
+03:37,283 --> 03:47,403
+<The slide changes to a single bullet point. The speaker expresses her expectations for student responses.>
+It's first important to know that my students are going to produce a variety of responses that are full of individuality and insight into this concept.
+22
+03:47,403 --> 03:53,923
+<The speaker's tone is inclusive and valuing of student input.>
+I value every single student's opinion and they all add their own element of expertise to this.
+23
+03:53,923 --> 04:07,173
+<A second bullet point appears on the slide. The speaker shifts to describing the ideal response.>
+However, I also know that a response that shows deep conceptual understanding will contain strong mathematical vocabulary and justifications grounded in the postulates for this topic.
+24
+04:07,173 --> 04:22,863
+<A third bullet point appears with a question for herself. She reads it aloud with a questioning intonation.>
+And so when thinking about the exemplar response, I'm asking myself, what would I want my students to say if they fully understand what it means for an equation to have no solutions, one solution or infinitely many solutions?
+25
+04:22,863 --> 04:33,183
+<The speaker acknowledges the difficulty of crafting a perfect response.>
+And this can be a hard thing to do, a difficult thing to think about. What is that exemplar response that has all of the components that I needed to have to show that deep understanding?
+26
+04:33,183 --> 04:39,033
+<The slide changes to a question about resources. The speaker poses the question to the viewer.>
+And so I then ask myself, what resources do I consult when crafting my exemplar response?
+27
+04:39,033 --> 04:52,993
+<The first resource bullet point appears on the slide. The speaker explains the first step in her process.>
+The first could be just the exemplar solution. And so I do the math myself and I examine the math. What are the misconceptions? What are the connotations and inferences that students will make just based on this activity?
+28
+04:52,993 --> 05:00,803
+<The second resource bullet point appears. She continues to outline her preparation.>
+Secondly, the standard. I try to incorporate the language of the standard into my exemplar response.
+29
+05:00,803 --> 05:08,013
+<The third resource bullet point appears.>
+Lastly, the lesson plan. Oftentimes, the lesson plan has really great rigorous materials for us to spar with.
+30
+05:08,013 --> 05:16,773
+<The speaker looks directly at the camera, emphasizing her role as an expert in preparing for the lesson.>
+And so again, I'm thinking through this because I know that my exemplar response or I need to be an expert in order to craft this exemplar response.
+31
+05:16,773 --> 05:25,703
+<The slide changes to a new bullet point, transitioning to the specific task.>
+And so for this task, I think that there is a few key parts. And so I'm going to start with just equation one.
+32
+05:25,703 --> 05:32,833
+<The slide shows two handwritten solutions for "Equation 1." The speaker anticipates student methods.>
+I anticipate firstly that the students will solve the equation in one of two ways as you see here.
+33
+05:32,833 --> 05:42,393
+<A second bullet point appears on the left, prompting a conclusion. The speaker voices her internal thought process.>
+After solving and solving in either of these two ways, I ask, what should they be able to conclude after solving this first equation?
+34
+05:42,393 --> 05:58,923
+<The slide now shows two typed versions of "Exemplar Response, part 1." The speaker reads one of them aloud.>
+By using my resources, I came up with the following. An equation has infinitely many solutions if a equals a. This statement is always true no matter the value of x. Therefore, any value of x when substituted will make the equation true.
+35
+05:58,923 --> 06:07,323
+<The slide changes to anticipate student work for "Equation 2," showing two handwritten solutions.>
+Now it's time for equation two. And I also anticipate that students will solve this equation in one of two ways.
+36
+06:07,323 --> 06:17,543
+<A second bullet point appears on the left, prompting another conclusion. The speaker continues her self-questioning.>
+I ask myself the same question to drive that key exemplar response. What should they be able to conclude after solving equation number two?
+37
+06:17,543 --> 06:34,813
+<The slide now shows two typed versions of "Exemplar Response, part 2." The speaker reads one aloud.>
+I was able to come up with the following. An equation has no solution if a equals B. This statement is never true, no matter the value of x. Therefore, there are no values of x when substituted that would make the equation true.
+38
+06:34,813 --> 06:51,323
+<The slide changes to three bullet points summarizing the takeaways from the two equations. The speaker synthesizes the points.>
+And so just to summarize, students would be able to learn about the fact that some equations have infinitely many solutions when analyzing equation number one. And students would be able to learn about the fact that some equations have no solution after analyzing equation number two.
+39
+06:51,323 --> 07:02,963
+<A fourth bullet point appears, introducing the concept of "one solution." The speaker connects the new concepts to prior knowledge.>
+Okay. But there's also another part. I'd also want students to be able to step back and remember the equations that they're already used to solving. And that's equations that have one solution.
+40
+07:02,963 --> 07:17,723
+<The slide shows "Exemplar Response, part 3." The speaker states the final part of the ideal student response.>
+And so in thinking about all that together, there's a third part to my exemplar response. I'd want students to be able to say that an equation in one variable can have zero, one, or infinitely many solutions.
+41
+07:17,723 --> 07:27,083
+<The slide changes back to the "Planning Template," which now includes the complete three-part "Ideal Answer.">
+And so putting together my exemplar response with all three parts, you can see here, and I'm placing that in my planning template as I prepare for discourse.
+42
+07:27,083 --> 07:44,793
+<A new title slide appears: "Activate Knowledge." The speaker transitions to the next part of her planning process.>
+Now it's time for me to start thinking about how I'm going to activate my student's knowledge prior to discourse and during this discourse if I need to. So I've selected the most productive struggle, and I know exactly what I want students to be able to say.
+43
+07:44,793 --> 07:55,753
+<The slide shows a bullet point about vocabulary and previous understandings. The speaker continues her thought process.>
+Now I need to start thinking about what that vocabulary is and previous understandings must already be solidified in order for us to get there.
+44
+07:55,753 --> 08:06,893
+<The slide shows two bullet points about skills and concepts from past lessons. The speaker recalls prior learning.>
+I remember from the past two lessons, we've been focused on the skill of solving multi-step equations and the concept of what it means for a value to be a solution to an equation.
+45
+08:06,893 --> 08:23,543
+<A third bullet point is added to the slide. The speaker emphasizes the foundational nature of this prior knowledge.>
+I also know that this knowledge is the foundation that students need to be able to master today's lesson. Without knowing what makes a value a solution, we can't begin to think about what it means to have no solutions or infinitely many solutions.
+46
+08:23,543 --> 08:36,463
+<The slide changes to show the "STAMP from the previous lesson". The speaker identifies the key takeaway from the prior lesson.>
+This is my baseline knowledge. So the stamp from the previous lesson that students will need today is, and I'm taking note of this, is that a solution is is an equation a solution to an equation is a value that makes the equation true.
+47
+08:36,463 --> 08:59,183
+<The slide shows the "Ideal Answer" table again. Below it, vocabulary words are highlighted in blue boxes as the speaker mentions them.>
+I'm also taking note not only just that stamp that they'll need to remember from last time, but also some new um some vocabulary terms that we need to be able to generate for the exemplar answer for today. These are terms like equation, solution, statements never true or false statement, true statement, substitute.
+48
+08:59,183 --> 09:14,483
+<The slide now adds "No solutions" and "Infinitely many solutions" in yellow boxes. The speaker raises her index finger for emphasis.>
+Now these are all words that students should already be familiar with, again from that stamp that we generated before. No solution and infinitely many solutions are going to be those new terms that are going to be added during discourse. And so I'm taking note of all of this.
+49
+09:14,483 --> 09:31,903
+<The slide shows the vocabulary words organized as a word wall. The speaker explains how she will use this resource.>
+To prepare for discourse, I've identified the precise academic language that students will need in order to show complete understanding. I'm going to physically display these words as a word wall on my whiteboard, and I'll prompt students to use them during discourse.
+50
+09:31,903 --> 09:41,603
+<The speaker explains the purpose of the word wall.>
+It's normal that oftentimes our discourse can stall or students can forget key information. So it's important that we have a resource ready to keep that discourse going to the key takeaway.
+51
+09:41,603 --> 10:04,493
+<The slide shows a bulleted list of key skills and concepts students have mastered. The speaker lists them out.>
+In addition, when preparing for discourse, I identified the skills and the concepts students must have already mastered as well. So the skill is they need to be able to solve multi-step equations and isolate a variable. The conceptual is that they need to know a solution to an equation is a value that makes the equation true.
+52
+10:04,493 --> 10:11,543
+<A new bullet point is added to the slide. The speaker emphasizes alignment.>
+Again, that stamp from before. And so when I review the activating knowledge section of my lesson, I'll ensure that all of this aligns to the goals for this lesson.
+53
+10:11,543 --> 10:20,013
+<The slide changes back to the "Planning Template," which now includes the "Word Wall/Activate Knowledge" section filled with the vocabulary list.>
+I can add this to my word wall/activate knowledge section of my planning template.
+        `;
+
+        // Initialize everything when page loads
+        window.addEventListener('load', () => {
+            // Initialize Vimeo player
+            initializeVimeoPlayer();
+            
+            // Render transcript if available
+            const transcriptData = parseTranscriptText(transcriptText);
+            if (transcriptData.length > 0) {
+                renderTranscript(transcriptData);
+            }
+        });
+    </script>
+</body>
+</html>
